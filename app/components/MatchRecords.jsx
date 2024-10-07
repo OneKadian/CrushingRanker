@@ -177,28 +177,6 @@ export default function MatchRecords({ userName }) {
   };
 
   // Handle checkbox change and update score correctly using callback
-  const handleCheckboxChange2 = (checked, setFunction) => {
-    setFunction((prev) => {
-      const newState = checked;
-
-      // Calculate the new score immediately after state update
-      let currentScore = (applied ? 1 : 0) + (mailed ? 1 : 0) + (dmed ? 1 : 0);
-      currentScore += newState ? 1 : -1; // Adjust score based on the new checkbox state
-
-      // Calculate the score difference based on changes in the checkbox states
-      const newScoreChange = currentScore - originalScore;
-      setLatestScoreChange(latestScore + newScoreChange); // Update the score state with the calculated change
-
-      // Enable the submit button as a change has been detected
-      setIsChanged(true);
-
-      // Log the latest score for debugging
-      console.log(`Latest Score: ${latestScore}`);
-      console.log(`Score after changes: ${latestScore + newScoreChange}`);
-
-      return newState;
-    });
-  };
 
   // Handle cancel button click - just closes the modal
   // Handle cancel button click - resets all states except latestScore
@@ -211,7 +189,6 @@ export default function MatchRecords({ userName }) {
     setCurrentScore(0);
     setIsEditModalOpen(false);
     setIsChanged(false);
-    // setLatestScoreChange(0);
   };
 
   // Handle submit button click for the edit modal
@@ -253,37 +230,6 @@ export default function MatchRecords({ userName }) {
     } finally {
       setIsLoading(false); // Stop the loading spinner
     }
-  };
-
-  // Fetches exact record for edit modal and initializes the states
-  const NewFunction = (index) => {
-    // Open the modal and start loading
-    setIsEditModalOpen(true);
-    setIsLoading(true);
-
-    // Fetch the specific record based on index
-    const record = matchRecords[index];
-
-    // Populate the states with the fetched record data
-    setCompanyURL(record.companyLink || "");
-    setEmailAddress(record.emailAddress || "");
-    setApplied(record.applied || false);
-    setMailed(record.mailed || false);
-    setDmed(record.DMed || false);
-
-    // Calculate the initial score based on the checkboxes
-    const initialScore =
-      (record.applied ? 1 : 0) +
-      (record.mailed ? 1 : 0) +
-      (record.DMed ? 1 : 0);
-    setOriginalScore(initialScore);
-    setLatestScoreChange(0); // Reset the score change to 0 initially
-
-    // Store the record being edited
-    setEditData(record);
-
-    // Stop loading after the states are set
-    setIsLoading(false);
   };
 
   return (
@@ -501,7 +447,7 @@ export default function MatchRecords({ userName }) {
           <div
             id="edit-modal"
             tabIndex="-1"
-            aria-hidden="true"
+            aria-hidden="false"
             className="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-gray-900 bg-opacity-50"
           >
             <div className="relative p-4 w-full max-w-2xl max-h-full">
@@ -511,7 +457,7 @@ export default function MatchRecords({ userName }) {
                     Edit Job Application
                   </h3>
                   <button
-                    onClick={() => setIsEditModalOpen(false)}
+                    onClick={handleCancelClick} // Use handleCancelClick here
                     type="button"
                     className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
                   >
@@ -599,12 +545,21 @@ export default function MatchRecords({ userName }) {
                       </label>
                     </div>
 
-                    <button
-                      type="submit"
-                      className="w-full mt-5 p-3 text-center text-white bg-blue-600 rounded-lg"
-                    >
-                      Save Changes
-                    </button>
+                    <div className="flex space-x-4 mt-5">
+                      <button
+                        type="submit"
+                        className="w-1/2 p-3 text-center text-white bg-blue-600 rounded-lg"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelClick}
+                        className="w-1/2 p-3 text-center text-gray-700 bg-gray-300 rounded-lg hover:bg-gray-400"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </form>
                 </div>
               </div>
