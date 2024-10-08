@@ -9,7 +9,8 @@ export const supabase = createClient(
 export const getRecords = async () => {
   const { data: records, error } = await supabase
     .from("records") // Use the correct table name: "records"
-    .select("*");
+    .select("*")
+    .order("id", { ascending: true });
 
   if (error) {
     console.error("Error fetching records:", error);

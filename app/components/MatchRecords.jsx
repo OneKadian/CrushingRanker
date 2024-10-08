@@ -150,6 +150,7 @@ export default function MatchRecords({ userName }) {
     console.log(latestScore); // current latest score
     console.log(latestScoreChange); // the latest score record
     console.log(scoreRecords);
+    console.log(matchRecords);
   };
 
   // Handle checkbox change
@@ -176,9 +177,6 @@ export default function MatchRecords({ userName }) {
     setIsChanged(true); // Enable the submit button if any changes are made
   };
 
-  // Handle checkbox change and update score correctly using callback
-
-  // Handle cancel button click - just closes the modal
   // Handle cancel button click - resets all states except latestScore
   const handleCancelClick = () => {
     setCompanyURL("");
@@ -189,9 +187,21 @@ export default function MatchRecords({ userName }) {
     setCurrentScore(0);
     setIsEditModalOpen(false);
     setIsChanged(false);
+    // setLatestScoreChange(0);
   };
 
-  // Handle submit button click for the edit modal
+  const updateMatchRecords = (editRecordId, updatedData) => {
+    return new Promise((resolve) => {
+      setMatchRecords((prevRecords) => {
+        const updatedRecords = prevRecords.map((record) =>
+          record.id === editRecordId ? { ...record, ...updatedData } : record
+        );
+        resolve(updatedRecords); // Resolve the promise once the state update is complete
+        return updatedRecords; // Return the updated records to set the state
+      });
+    });
+  };
+
   const handleSubmit2 = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -208,11 +218,17 @@ export default function MatchRecords({ userName }) {
       );
 
       if (!error) {
-        // Fetch the updated records list after the update
-        const fetchedRecords = await getRecords();
-        setMatchRecords(fetchedRecords);
+        // Directly update the matchRecords state without re-fetching and await the update
+        const updatedData = {
+          companyLink: companyURL,
+          emailAddress: emailAddress,
+          applied: applied,
+          mailed: mailed,
+          DMed: dmed, // Update DMed status immediately
+        };
+        await updateMatchRecords(editRecordId, updatedData); // Await the state update
 
-        // Reset the form fields and state variables
+        // Reset the form fields and state variables after the state has been updated
         setCompanyURL("");
         setEmailAddress("");
         setApplied(false);
@@ -228,9 +244,11 @@ export default function MatchRecords({ userName }) {
     } catch (error) {
       console.error("Error during update submission:", error);
     } finally {
-      setIsLoading(false); // Stop the loading spinner
+      setIsLoading(false); // Stop the loading spinner once everything is done
     }
   };
+
+  // Fetches exact record for edit modal and initializes the states
 
   return (
     <div>
@@ -457,7 +475,7 @@ export default function MatchRecords({ userName }) {
                     Edit Job Application
                   </h3>
                   <button
-                    onClick={handleCancelClick} // Use handleCancelClick here
+                    onClick={() => setIsEditModalOpen(false)}
                     type="button"
                     className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
                   >
@@ -545,21 +563,12 @@ export default function MatchRecords({ userName }) {
                       </label>
                     </div>
 
-                    <div className="flex space-x-4 mt-5">
-                      <button
-                        type="submit"
-                        className="w-1/2 p-3 text-center text-white bg-blue-600 rounded-lg"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelClick}
-                        className="w-1/2 p-3 text-center text-gray-700 bg-gray-300 rounded-lg hover:bg-gray-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
+                    <button
+                      type="submit"
+                      className="w-full mt-5 p-3 text-center text-white bg-blue-600 rounded-lg"
+                    >
+                      Save Changes
+                    </button>
                   </form>
                 </div>
               </div>
