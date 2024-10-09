@@ -20,6 +20,7 @@ export const getRecords = async () => {
 };
 
 // Insert a new record into the "records" table
+// Insert a new record into the "records" table, including mailScore and dmScore
 export const insertRecord = async (
   companyLink,
   emailAddress,
@@ -28,7 +29,9 @@ export const insertRecord = async (
   DMed,
   user_id,
   name,
-  score
+  score,
+  mailScore, // New parameter for mail count
+  dmScore // New parameter for DM count
 ) => {
   try {
     const { data, error } = await supabase.from("records").insert({
@@ -39,7 +42,9 @@ export const insertRecord = async (
       DMed, // Maps to the "DMed" checkbox state
       user_id, // User ID fetched from Clerk
       name, // Name of the person
-      score,
+      score, // The overall score (if used)
+      mailScore, // New: Maps to the "mailScore" column
+      dmScore, // New: Maps to the "dmScore" column
     });
 
     if (error) {
@@ -55,13 +60,16 @@ export const insertRecord = async (
   }
 };
 
+// Update an existing record in the "records" table, including mailScore and dmScore
 export const updateRecord = async (
   companyLink,
   emailAddress,
   applied,
   mailed,
   DMed,
-  id
+  id,
+  mailScore, // New parameter for mail count update
+  dmScore // New parameter for DM count update
 ) => {
   try {
     const { data, error } = await supabase
@@ -72,6 +80,8 @@ export const updateRecord = async (
         applied, // Update the "applied" checkbox state
         mailed, // Update the "mailed" checkbox state
         DMed, // Update the "DMed" checkbox state
+        mailScore, // New: Update the "mailScore" column
+        dmScore, // New: Update the "dmScore" column
       })
       .eq("id", id); // Use the provided ID to select the correct record
 

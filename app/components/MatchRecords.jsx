@@ -16,7 +16,6 @@ import {
   getRecords2,
   insertRecord,
   updateRecord,
-  supabase,
 } from "@/supabase/supabaseClient";
 import Link from "next/link";
 
@@ -26,7 +25,6 @@ export default function MatchRecords({ userName }) {
   const [userToastDisplay, setUserToastDisplay] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [matchRecords, setMatchRecords] = useState([]);
-
   const [scoreRecords, setScoreRecords] = useState({});
   const [originalScore, setOriginalScore] = useState(0);
   const [updatedScore, setUpdatedScore] = useState(0);
@@ -95,6 +93,8 @@ export default function MatchRecords({ userName }) {
     setApplied(recordToEdit.applied);
     setMailed(recordToEdit.mailed);
     setDmed(recordToEdit.DMed);
+    setMailCount(recordToEdit.mailScore);
+    setDMsent(recordToEdit.dmScore);
     setIsEditModalOpen(true); // Open the edit modal
   };
 
@@ -118,9 +118,9 @@ export default function MatchRecords({ userName }) {
 
       // Calculate the new total score by adding the current score to the latest score from the records
       const newTotalScore =
-        currentScore + matchRecords[matchRecords.length - 1]?.score || 0;
+        currentScore + (matchRecords[matchRecords.length - 1]?.score || 0);
 
-      // Insert the new record with the calculated total score
+      // Insert the new record with the calculated total score, mailCount, and DMsent
       const { error } = await insertRecord(
         companyURL,
         emailAddress,
@@ -129,7 +129,9 @@ export default function MatchRecords({ userName }) {
         dmed,
         userName[2],
         userName[0],
-        newTotalScore // Pass the calculated total score here
+        newTotalScore, // Pass the calculated total score here
+        mailCount, // Pass the mail counter value from state
+        DMsent // Pass the DM counter value from state
       );
 
       if (!error) {
@@ -144,6 +146,10 @@ export default function MatchRecords({ userName }) {
         setMailed(false);
         setDmed(false);
         setCurrentScore(0); // Reset the current score to zero
+
+        // Reset mail and DM counters
+        setMailCount(0);
+        setDMsent(0);
 
         // Fetch the latest score record for the user and update the state
         const fetchedScoreRecords = await getRecords2(userName[2]);
@@ -238,14 +244,17 @@ export default function MatchRecords({ userName }) {
     setIsLoading(true);
 
     try {
-      // Update the record in the database using the stored ID
+      // Update the record in the database using the stored ID and include mailCount and DMsent
       const { error } = await updateRecord(
         companyURL,
         emailAddress,
         applied,
         mailed,
         dmed,
-        editRecordId // Pass the ID of the record being edited
+        editRecordId, // Pass the ID of the record being edited
+        mailCount, // Pass the mail counter value from state
+        DMsent, // Pass the DM counter value from state
+        latestScoreChange
       );
 
       if (!error) {
@@ -256,6 +265,8 @@ export default function MatchRecords({ userName }) {
           applied: applied,
           mailed: mailed,
           DMed: dmed, // Update DMed status immediately
+          mailScore: mailCount, // Include mail score in the updated data
+          dmScore: DMsent, // Include DM score in the updated data
         };
         await updateMatchRecords(editRecordId, updatedData); // Await the state update
 
@@ -266,6 +277,11 @@ export default function MatchRecords({ userName }) {
         setMailed(false);
         setDmed(false);
         setCurrentScore(0);
+
+        // Reset mail and DM counters
+        setMailCount(0);
+        setDMsent(0);
+
         setEditRecordId(null); // Clear the ID of the record being edited
         setIsEditModalOpen(false); // Close the edit modal
         setIsChanged(false); // Reset the change detection
@@ -278,6 +294,42 @@ export default function MatchRecords({ userName }) {
       setIsLoading(false); // Stop the loading spinner once everything is done
     }
   };
+
+  //   e.preventDefault();
+
+  //   // Basic validation (You can customize this based on your requirements)
+  //   if (!companyURL || !emailAddress) {
+  //     alert("Please fill in all required fields.");
+  //     return;
+  //   }
+
+  //   // Logic to update your records
+  //   const updatedRecord = {
+  //     companyURL,
+  //     emailAddress,
+  //     applied,
+  //     mailed,
+  //     dmed,
+  //     mailCount,
+  //     DMsent,
+  //   };
+
+  //   // Here you would typically make an API call to save the updated record.
+  //   // For example:
+  //   // updateRecordInDatabase(updatedRecord);
+
+  //   console.log("Record updated:", updatedRecord);
+
+  //   // Reset states and close the modal after submission
+  //   setCompanyURL("");
+  //   setEmailAddress("");
+  //   setApplied(false);
+  //   setMailed(false);
+  //   setDmed(false);
+  //   setMailCount(2);
+  //   setDMsent(2);
+  //   setCreateMatchModal(false);
+  // };
 
   // Fetches exact record for edit modal and initializes the states
 
@@ -546,7 +598,7 @@ export default function MatchRecords({ userName }) {
           </div>
         )}
 
-        {isEditModalOpen && (
+        {/* {isEditModalOpen && (
           <div
             id="edit-modal"
             tabIndex="-1"
@@ -658,6 +710,185 @@ export default function MatchRecords({ userName }) {
                       <button
                         type="button"
                         onClick={handleCancelClick} // Cancel button triggers handleCancelClick
+                        className="w-1/2 ml-2 p-3 text-center text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        )} */}
+        {isEditModalOpen && (
+          <div
+            id="edit-modal"
+            tabIndex="-1"
+            aria-hidden="false"
+            className="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-gray-900 bg-opacity-50"
+          >
+            <div className="relative p-4 w-full max-w-2xl max-h-full">
+              <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    Edit Job Application
+                  </h3>
+                  <button
+                    onClick={handleCancelClick}
+                    type="button"
+                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                  >
+                    <svg
+                      className="w-3 h-3"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 14 14"
+                    >
+                      <path
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+                      />
+                    </svg>
+                    <span className="sr-only">Close modal</span>
+                  </button>
+                </div>
+                <div className="p-4 md:p-5 space-y-4">
+                  <form className="space-y-4" onSubmit={handleSubmit2}>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white">
+                        Company/Job URL
+                      </label>
+                      <input
+                        type="text"
+                        value={companyURL}
+                        onChange={(e) => setCompanyURL(e.target.value)}
+                        className="block w-full mt-2 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={emailAddress}
+                        onChange={(e) => setEmailAddress(e.target.value)}
+                        className="block w-full mt-2 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900"
+                        required
+                      />
+                    </div>
+
+                    {/* Applied Checkbox */}
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={applied}
+                        onChange={(e) =>
+                          handleCheckboxChange(e.target.checked, setApplied)
+                        }
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                      />
+                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
+                        Applied
+                      </label>
+                    </div>
+
+                    {/* Mailed Checkbox */}
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={mailed}
+                        onChange={(e) => {
+                          handleCheckboxChange(e.target.checked, setMailed);
+                          // Show mail counter if mailed is true
+                          if (!e.target.checked) setMailCount(0);
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                      />
+                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
+                        Mailed
+                      </label>
+                    </div>
+
+                    {/* Conditionally Render Mail Counter */}
+                    {mailed && (
+                      <div className="flex items-center mt-2 space-x-4">
+                        <button
+                          type="button"
+                          onClick={decrementMailCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleDown />
+                        </button>
+                        <span className="text-sm font-medium text-black">
+                          {mailCount} Mails sent
+                        </span>
+                        <button
+                          type="button"
+                          onClick={incrementMailCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleUp />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* DMed Checkbox */}
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={dmed}
+                        onChange={(e) => {
+                          handleCheckboxChange(e.target.checked, setDmed);
+                          if (!e.target.checked) setDMsent(0);
+                        }}
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                      />
+                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
+                        DMed
+                      </label>
+                    </div>
+
+                    {/* Conditionally Render DM Counter */}
+                    {dmed && (
+                      <div className="flex items-center mt-2 space-x-4">
+                        <button
+                          type="button"
+                          onClick={decrementDMCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleDown />
+                        </button>
+                        <span className="text-sm font-medium text-black">
+                          {DMsent} DMs sent
+                        </span>
+                        <button
+                          type="button"
+                          onClick={incrementDMCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleUp />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Submit and Cancel Buttons */}
+                    <div className="flex justify-between mt-5">
+                      <button
+                        type="submit"
+                        className="w-1/2 mr-2 p-3 text-center text-white bg-blue-600 rounded-lg"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelClick}
                         className="w-1/2 ml-2 p-3 text-center text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
                       >
                         Cancel
