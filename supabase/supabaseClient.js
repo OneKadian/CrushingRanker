@@ -55,37 +55,6 @@ export const insertRecord = async (
   }
 };
 
-export const getUserIDS = async () => {
-  const { data: IDs, error } = await supabase
-    .from("userIDS") // Use the correct table name: "records"
-    .select("*");
-
-  if (error) {
-    console.error("Error fetching user ID:", error);
-    return []; // Or handle the error differently
-  }
-  return IDs;
-};
-
-export const insertUserID = async (user_id) => {
-  try {
-    const { data, error } = await supabase.from("userIDS").insert({
-      user_id, // User ID fetched from Clerk
-    });
-
-    if (error) {
-      console.error("Error inserting user ID:", error);
-      return { data: null, error };
-    }
-
-    console.log("userID inserted successfully:", data);
-    return { data, error: null };
-  } catch (error) {
-    console.error("Unexpected error:", error);
-    return { data: null, error };
-  }
-};
-
 export const updateRecord = async (
   companyLink,
   emailAddress,
@@ -132,4 +101,35 @@ export const getRecords2 = async (user_id) => {
   }
 
   return records;
+};
+
+export const getUserIDS = async () => {
+  const { data: IDs, error } = await supabase
+    .from("userIDS") // Use the correct table name: "records"
+    .select("*");
+
+  if (error) {
+    console.error("Error fetching user ID:", error);
+    return []; // Or handle the error differently
+  }
+  return IDs;
+};
+
+export const insertUserID = async (user_id) => {
+  try {
+    const { data, error } = await supabase.from("userIDS").insert({
+      user_id, // User ID fetched from Clerk
+    });
+
+    if (error) {
+      console.error("Error inserting user ID:", error);
+      return { data: null, error };
+    }
+
+    console.log("userID inserted successfully:", data);
+    return { data, error: null };
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return { data: null, error };
+  }
 };

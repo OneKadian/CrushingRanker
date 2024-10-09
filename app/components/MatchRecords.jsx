@@ -39,11 +39,31 @@ export default function MatchRecords({ userName }) {
   const [applied, setApplied] = useState(false);
   const [mailed, setMailed] = useState(false);
   const [dmed, setDmed] = useState(false);
+  const [DMsent, setDMsent] = useState(2); // State for DM counter
+
   // score changes after editing
   const [latestScore, setLatestScore] = useState(0);
   const [currentScore, setCurrentScore] = useState(0);
 
   const [latestScoreChange, setLatestScoreChange] = useState(0);
+
+  // mail scoring
+  const [mailCount, setMailCount] = useState(2); // State to track the number of mails
+
+  // Handle increment
+  const incrementMailCount = () => {
+    setMailCount((prevCount) => prevCount + 1);
+  };
+
+  // Handle decrement
+  const decrementMailCount = () => {
+    if (mailCount > 1) {
+      setMailCount((prevCount) => prevCount - 1);
+    }
+  };
+
+  const incrementDMCount = () => setDMsent(DMsent + 1);
+  const decrementDMCount = () => setDMsent(DMsent > 0 ? DMsent - 1 : 0);
 
   // Fetches all records and latest score
   useEffect(() => {
@@ -64,10 +84,6 @@ export default function MatchRecords({ userName }) {
 
     fetchData();
   }, [userName]);
-
-  const toggleCreateMatchModal = () => {
-    setCreateMatchModal(!CreateMatchModal);
-  };
 
   // Runs when edit button is clicked
   const handleEditButtonClick = (recordId) => {
@@ -149,8 +165,6 @@ export default function MatchRecords({ userName }) {
   const printLatestScore = () => {
     console.log(latestScore); // current latest score
     console.log(latestScoreChange); // the latest score record
-    console.log(scoreRecords);
-    console.log(matchRecords);
   };
 
   // Handle checkbox change
@@ -187,7 +201,24 @@ export default function MatchRecords({ userName }) {
     setCurrentScore(0);
     setIsEditModalOpen(false);
     setIsChanged(false);
+    setLatestScoreChange(latestScore);
+    setDMsent(2);
+    setMailCount(2);
+
     // setLatestScoreChange(0);
+  };
+
+  const handleCancelClick2 = () => {
+    setCompanyURL("");
+    setEmailAddress("");
+    setApplied(false);
+    setMailed(false);
+    setDmed(false);
+    setCurrentScore(0);
+    setMailCount(2);
+    setCreateMatchModal(false); // Assuming this state controls the visibility of the CreateMatchModal
+    setIsChanged(false);
+    setLatestScoreChange(latestScore);
   };
 
   const updateMatchRecords = (editRecordId, updatedData) => {
@@ -355,7 +386,7 @@ export default function MatchRecords({ userName }) {
                     Job Application Form
                   </h3>
                   <button
-                    onClick={toggleCreateMatchModal}
+                    onClick={handleCancelClick2}
                     type="button"
                     className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
                   >
@@ -413,12 +444,13 @@ export default function MatchRecords({ userName }) {
                         onChange={(e) =>
                           handleCheckboxChange(e.target.checked, setApplied)
                         }
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                       />
-                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
                         Applied
                       </label>
                     </div>
+
                     {/* Mailed Checkbox */}
                     <div className="flex items-center">
                       <input
@@ -427,12 +459,34 @@ export default function MatchRecords({ userName }) {
                         onChange={(e) =>
                           handleCheckboxChange(e.target.checked, setMailed)
                         }
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                       />
-                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
                         Mailed
                       </label>
                     </div>
+                    {/* Conditionally Render Mail Counter */}
+                    {mailed && (
+                      <div className="flex items-center mt-2 space-x-4">
+                        <button
+                          type="button"
+                          onClick={decrementMailCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleDown />
+                        </button>
+                        <span className="text-sm font-medium text-black">
+                          {mailCount} Mails sent
+                        </span>
+                        <button
+                          type="button"
+                          onClick={incrementMailCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleUp />
+                        </button>
+                      </div>
+                    )}
                     {/* DMed Checkbox */}
                     <div className="flex items-center">
                       <input
@@ -441,26 +495,57 @@ export default function MatchRecords({ userName }) {
                         onChange={(e) =>
                           handleCheckboxChange(e.target.checked, setDmed)
                         }
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                       />
-                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
                         DMed
                       </label>
                     </div>
-
-                    {/* Submit Button */}
-                    <button
-                      type="submit"
-                      className="w-full mt-5 p-3 text-center text-white bg-blue-600 rounded-lg"
-                    >
-                      Submit
-                    </button>
+                    {/* Conditionally Render DM Counter */}
+                    {dmed && (
+                      <div className="flex items-center mt-2 space-x-4">
+                        <button
+                          type="button"
+                          onClick={decrementDMCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleDown />
+                        </button>
+                        <span className="text-sm font-medium text-black">
+                          {DMsent} DMs sent
+                        </span>
+                        <button
+                          type="button"
+                          onClick={incrementDMCount}
+                          className="text-lg text-gray-700 border border-black rounded-full p-2 hover:bg-gray-200 transition"
+                        >
+                          <FaArrowAltCircleUp />
+                        </button>
+                      </div>
+                    )}
+                    {/* Submit and Cancel Buttons */}
+                    <div className="flex justify-between mt-5">
+                      <button
+                        type="submit"
+                        className="w-1/2 mr-2 p-3 text-center text-white bg-blue-600 rounded-lg"
+                      >
+                        Submit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelClick2}
+                        className="w-1/2 ml-2 p-3 text-center text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </form>
                 </div>
               </div>
             </div>
           </div>
         )}
+
         {isEditModalOpen && (
           <div
             id="edit-modal"
@@ -475,7 +560,7 @@ export default function MatchRecords({ userName }) {
                     Edit Job Application
                   </h3>
                   <button
-                    onClick={() => setIsEditModalOpen(false)}
+                    onClick={handleCancelClick} // Update to call handleCancelClick
                     type="button"
                     className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
                   >
@@ -563,12 +648,21 @@ export default function MatchRecords({ userName }) {
                       </label>
                     </div>
 
-                    <button
-                      type="submit"
-                      className="w-full mt-5 p-3 text-center text-white bg-blue-600 rounded-lg"
-                    >
-                      Save Changes
-                    </button>
+                    <div className="flex justify-between mt-5">
+                      <button
+                        type="submit"
+                        className="w-1/2 mr-2 p-3 text-center text-white bg-blue-600 rounded-lg"
+                      >
+                        Save Changes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelClick} // Cancel button triggers handleCancelClick
+                        className="w-1/2 ml-2 p-3 text-center text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </form>
                 </div>
               </div>
