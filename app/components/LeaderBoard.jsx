@@ -7,7 +7,7 @@ import SectionContainer from "./SectionContainer";
 import { RiVipCrownFill } from "react-icons/ri";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
-import { getBadmintonMatches } from "@/supabase/supabaseClient";
+import { supabase } from "@/supabase/supabaseClient";
 
 import { FaRegEye } from "react-icons/fa";
 import { useState, useEffect } from "react";
@@ -15,88 +15,66 @@ import { useState, useEffect } from "react";
 export default function LeaderBoard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [matchRecords, setMatchRecords] = useState([]);
   const [playerStats, setPlayerStats] = useState([]);
 
-  const calculateAMP = (playerName, matches) => {
-    let totalPoints = 0;
-    let matchCount = 0;
-
-    matches.forEach((match) => {
-      if (match.team1.includes(playerName)) {
-        totalPoints += match.team1Score;
-        matchCount++;
-      } else if (match.team2.includes(playerName)) {
-        totalPoints += match.team2Score;
-        matchCount++;
-      }
-    });
-
-    const average = matchCount > 0 ? totalPoints / matchCount : 0;
-    return parseFloat(average.toFixed(1)); // Round to one decimal place
+  // Fetch all user details from the USERIDS table
+  const getUserIDs = async () => {
+    const { data: userIDs, error } = await supabase
+      .from("userIDS")
+      .select("user_id, name, imageURL");
+    if (error) {
+      console.error("Error fetching user IDs:", error);
+      return [];
+    }
+    return userIDs;
   };
 
+  // Fetch the last score for a given user from the records table
+  const getLastUserScore = async (userID) => {
+    const { data: records, error } = await supabase
+      .from("records")
+      .select("score")
+      .eq("user_id", userID)
+      .order("created_at", { ascending: false }); // Get the latest record based on `created_at`
+
+    if (error || records.length === 0) {
+      console.error(`Error fetching records for user ${userID}:`, error);
+      return 0; // Return 0 if no records found
+    }
+    return records[0].score; // Return the score from the latest record
+  };
+
+  // Main data fetching and calculation
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const fetchedMatches = await getBadmintonMatches();
-      setMatchRecords(fetchedMatches);
 
-      const players = [
-        "Bhavya",
-        "Nakul",
-        "Mihir",
-        "Sathish",
-        "Mayank",
-        "Anirudh",
-        "Dev",
-      ];
+      // Step 1: Get all user data from USERIDS table
+      const userData = await getUserIDs();
 
-      const stats = players.map((player) => {
-        const matchesPlayed = fetchedMatches.filter(
-          (match) =>
-            match.team1.includes(player) || match.team2.includes(player)
-        ).length;
-        const AMP = calculateAMP(player, fetchedMatches);
-        return { name: player, matches: matchesPlayed, score: AMP };
+      // Step 2: For each user, fetch their last record and calculate the score
+      const userStatsPromises = userData.map(async (user) => {
+        const lastScore = await getLastUserScore(user.user_id);
+        return { ...user, score: lastScore };
       });
 
-      // Sort the stats array in descending order based on the score
+      // Wait for all user stats to be calculated
+      const stats = await Promise.all(userStatsPromises);
+
+      // Step 3: Sort the stats array in descending order based on the score
       stats.sort((a, b) => b.score - a.score);
 
+      // Step 4: Update the state with sorted player stats
       setPlayerStats(stats);
       setIsLoading(false);
-      console.log(stats); // Log the sorted stats array
     };
 
     fetchData();
   }, []);
 
-  // Dummy array with player data
-
+  // Toggle modal function (if needed)
   const toggleModal = () => {
     setModalVisible(!modalVisible);
-  };
-
-  const getPlayerImage = (playerName) => {
-    switch (playerName) {
-      case "Dev":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.48.04.jpeg";
-      case "Mihir":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.48.27.jpeg";
-      case "Bhavya":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.50.29.jpeg";
-      case "Nakul":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.52.07.jpeg";
-      case "Anirudh":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.59.33.jpeg";
-      case "Mayank":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2017.00.19.jpeg";
-      case "Sathish":
-        return "https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2017.01.05.jpeg";
-      default:
-        return ""; // Or set a default image here
-    }
   };
 
   return (
@@ -118,7 +96,8 @@ export default function LeaderBoard() {
                   <div className="rounded-full border-2 border-black h-16 w-16 text-3xl flex justify-center items-center overflow-hidden">
                     {/* <Image src={MuskImage} alt="muskImage" height={64} width={64} /> */}
                     <Image
-                      src={getPlayerImage(playerStats[1].name)}
+                      src={playerStats[1].imageURL}
+                      // src="https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.52.07.jpeg"
                       alt="muskImage"
                       height={64}
                       width={64}
@@ -127,6 +106,7 @@ export default function LeaderBoard() {
                 </div>
                 {/* <p className="text-center text-black">Annecy</p> */}
                 <BadgeGroup alignment="center" className="mt-2">
+                  {/* <BadgeMessage>{playerStats[1].name} </BadgeMessage> */}
                   <BadgeMessage>{playerStats[1].name} </BadgeMessage>
                 </BadgeGroup>
                 {/* <BadgeGroup2 alignment="center" className="mt-2">
@@ -148,7 +128,9 @@ export default function LeaderBoard() {
                 <div className="h-max w-full flex items-center justify-center">
                   <div className="rounded-full border-2 border-[#facc15] h-16 w-16 text-3xl flex justify-center items-center overflow-hidden">
                     <Image
-                      src={getPlayerImage(playerStats[0].name)}
+                      // src={getPlayerImage(playerStats[0].name)}
+                      src={playerStats[0].imageURL}
+                      // src="https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.52.07.jpeg"
                       alt="muskImage"
                       height={64}
                       width={64}
@@ -156,7 +138,7 @@ export default function LeaderBoard() {
                   </div>
                 </div>
                 <BadgeGroup alignment="center" className="mt-2">
-                  <BadgeMessage>{playerStats[0].name} </BadgeMessage>
+                  <BadgeMessage>{playerStats[0].name}</BadgeMessage>
                 </BadgeGroup>
                 {/* <BadgeGroup2 alignment="center" className="mt-2">
             <BadgeMessage>AMP 20</BadgeMessage>
@@ -182,7 +164,9 @@ export default function LeaderBoard() {
                 <div className="h-max w-full flex items-center justify-center">
                   <div className="rounded-full border-2 border-black h-16 w-16 text-3xl flex justify-center items-center overflow-hidden">
                     <Image
-                      src={getPlayerImage(playerStats[2].name)}
+                      // src={getPlayerImage(playerStats[2].name)}
+                      src={playerStats[2].imageURL}
+                      // src="https://osdblyvwidixouibqkrf.supabase.co/storage/v1/object/public/Badminton/WhatsApp%20Image%202024-05-14%20at%2016.52.07.jpeg"
                       alt="muskImage"
                       height={64}
                       width={64}
@@ -210,67 +194,51 @@ export default function LeaderBoard() {
                 {/* Table head - properties */}
                 <thead className="text-lg text-gray-700 bg-gray-300">
                   <tr>
-                    <th scope="col" className="px-8 py-8">
+                    <th scope="col" className="px-12 py-8">
+                      {" "}
+                      {/* Added breathing space */}
                       Rank
                     </th>
-                    <th scope="col" className="px-8 py-8">
+                    <th scope="col" className="px-12 py-8">
+                      {" "}
+                      {/* Added breathing space */}
                       Member
                     </th>
-                    <th scope="col" className="px-8 py-8">
+                    <th scope="col" className="px-12 py-8">
+                      {" "}
+                      {/* Added breathing space */}
                       Score
-                    </th>
-                    <th scope="col" className="px-8 py-8">
-                      Found
-                    </th>
-                    <th scope="col" className="px-8 py-8">
-                      Applied
-                    </th>
-                    <th scope="col" className="px-8 py-8">
-                      Mailed
-                    </th>
-                    <th scope="col" className="px-8 py-8">
-                      DMed
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {/* Map through the playerStats array to create table rows dynamically */}
                   {playerStats.map((player, index) => (
-                    // Table row - data
                     <tr key={index} className="bg-white border-b text-lg">
                       {/* Rank column */}
                       <th
                         scope="row"
-                        className="px-8 py-8 text-lg font-medium text-gray-900 whitespace-nowrap"
+                        className="px-12 py-8 text-lg font-medium text-gray-900 whitespace-nowrap"
                       >
                         {index + 1}
                       </th>
 
                       {/* Member column */}
-                      <td className="px-8 py-8 text-lg">
-                        <div className="flex flex-col justify-center items-center">
+                      <td className="px-12 py-8 text-lg flex justify-start">
+                        <div className="flex flex-col justify-start items-center">
                           <span className="rounded-full border-2 border-black h-16 w-16 text-3xl flex justify-center items-center overflow-hidden">
-                            <Image
-                              src={getPlayerImage(player.name)}
-                              alt="playerImage"
-                              height={64}
-                              width={64}
+                            <img
+                              src={player.imageURL}
+                              alt={player.name}
+                              className="h-full w-full object-cover"
                             />
                           </span>
-                          <BadgeGroup alignment="center" className="mt-2">
-                            <BadgeMessage>{player.name}</BadgeMessage>
-                          </BadgeGroup>
+                          <div className="mt-2">{player.name}</div>
                         </div>
                       </td>
 
-                      {/* Score, Found columns */}
-                      <td className="px-8 py-8 text-lg">{player.matches}</td>
-                      <td className="px-8 py-8 text-lg">{player.score}</td>
-
-                      {/* New columns: Applied, Mailed, DMed */}
-                      <td className="px-8 py-8 text-lg text-center ">0</td>
-                      <td className="px-8 py-8 text-lg text-center ">0</td>
-                      <td className="px-8 py-8 text-lg text-center ">0</td>
+                      {/* Score column */}
+                      <td className="px-12 py-8 text-lg">{player.score}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -11,7 +11,7 @@ const DATA = [
     title: "Records",
     items: [
       {
-        label: "Matches",
+        label: "Add yours",
         href: "/records",
       },
     ],
@@ -44,11 +44,11 @@ const Footer = () => {
                 <ButtonGroup alignment="left">
                   <a
                     role="button"
-                    href="https://github.com/onekadian"
+                    href="https://www.shutterstock.com/search/coming-soon"
                     // className="btn btn--secondary"
                     className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg px-8 py-2 font-semibold btn btn--secondary md:w-auto"
                   >
-                    Watch me Build
+                    Check out the story
                     <FaArrowRightLong className="text-black" />
                   </a>
                 </ButtonGroup>

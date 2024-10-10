@@ -6,10 +6,11 @@ export const supabase = createClient(
 );
 
 // Fetch all records from the "records" table
-export const getRecords = async () => {
+export const getRecords = async (user_id) => {
   const { data: records, error } = await supabase
     .from("records") // Use the correct table name: "records"
     .select("*")
+    .eq("user_id", user_id)
     .order("id", { ascending: true });
 
   if (error) {
@@ -32,7 +33,8 @@ export const insertRecord = async (
   score,
   mailScore, // New parameter for mail count
   dmScore, // New parameter for DM count
-  appliedScore
+  appliedScore,
+  imageURL
 ) => {
   try {
     const { data, error } = await supabase.from("records").insert({
@@ -47,6 +49,7 @@ export const insertRecord = async (
       mailScore, // New: Maps to the "mailScore" column
       dmScore, // New: Maps to the "dmScore" column
       appliedScore,
+      imageURL,
     });
 
     if (error) {

@@ -41,6 +41,7 @@ export default function MatchRecords({ userName }) {
   const [currentScore, setCurrentScore] = useState(0);
   const [latestScoreChange, setLatestScoreChange] = useState(0);
   const [mailCount, setMailCount] = useState(0); // State to track the number of mails
+  const [image, setImage] = useState(""); // State to track the number of mails
 
   // Handle increment
   const incrementMailCount = () => {
@@ -60,7 +61,8 @@ export default function MatchRecords({ userName }) {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true); // Set loading to true before fetching
-      const fetchedMatches = await getRecords();
+      setImage(userName[3]);
+      const fetchedMatches = await getRecords(userName[2]);
       const fetchedScoreRecords = await getRecords2(userName[2]);
       setMatchRecords(fetchedMatches);
       setIsLoading(false); // Set loading to false after fetching
@@ -135,7 +137,8 @@ export default function MatchRecords({ userName }) {
         newTotalScore, // Pass the calculated total score here
         mailCount, // Pass the mail counter value from state
         DMsent, // Pass the DM counter value from state
-        applyScore
+        applyScore,
+        userName[3]
       );
 
       if (!error) {

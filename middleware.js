@@ -11,7 +11,6 @@ export default authMiddleware({
     "/",
     "/api/(.*)",
     "/Price",
-    "/matches",
     "/members",
     "/PrivacyPolicy",
     "Terms&Conditions",
