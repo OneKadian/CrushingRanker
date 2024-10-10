@@ -127,10 +127,12 @@ export const getUserIDS = async () => {
   return IDs;
 };
 
-export const insertUserID = async (user_id) => {
+export const insertUserID = async (user_id, name, imageURL) => {
   try {
     const { data, error } = await supabase.from("userIDS").insert({
       user_id, // User ID fetched from Clerk
+      name,
+      imageURL,
     });
 
     if (error) {

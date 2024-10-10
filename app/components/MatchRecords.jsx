@@ -11,6 +11,8 @@ import {
   insertRecord,
   updateRecord,
   updateRecord2,
+  insertUserID,
+  getUserIDS,
 } from "@/supabase/supabaseClient";
 import Link from "next/link";
 
@@ -92,6 +94,27 @@ export default function MatchRecords({ userName }) {
     try {
       setIsLoading(true);
 
+      // Fetch all existing user IDs from the USERIDS table
+      const userIDs = await getUserIDS();
+
+      // Check if the current user_id exists in the fetched list
+      const userExists = userIDs.some((user) => user.user_id === userName[2]);
+
+      // If the user_id does not exist, insert the new user into the USERIDS table
+      if (!userExists) {
+        const { error: insertError } = await insertUserID(
+          userName[2], // user_id
+          `${userName[0]} ${userName[1]}`, // Full name
+          userName[3] // imageURL
+        );
+
+        if (insertError) {
+          console.log("Error inserting new user:", insertError);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Calculate the new score based on the `applyScore`, `DMsent`, and `mailCount` states
       const currentScore =
         applyScore + (dmed ? DMsent : 0) + (mailed ? mailCount : 0);
@@ -107,11 +130,11 @@ export default function MatchRecords({ userName }) {
         applied,
         mailed,
         dmed,
-        userName[2],
-        userName[0],
+        userName[2], // user_id
+        userName[0], // User's first name
         newTotalScore, // Pass the calculated total score here
         mailCount, // Pass the mail counter value from state
-        DMsent, // Pass the DM counter value from state,
+        DMsent, // Pass the DM counter value from state
         applyScore
       );
 
@@ -153,10 +176,7 @@ export default function MatchRecords({ userName }) {
 
   // Prints latest score and score record
   const printLatestScore = () => {
-    console.log(latestScore); // current latest score
-    console.log(latestScoreChange); // the latest score record
-    console.log(random);
-    console.log(matchRecords[matchRecords.length - 1].id);
+    console.log(userName);
     console.log(matchRecords[matchRecords.length - 1].score);
   };
 
@@ -466,7 +486,7 @@ export default function MatchRecords({ userName }) {
           <div
             id="default-modal"
             tabIndex="-1"
-            aria-hidden="true"
+            aria-hidden="false"
             className="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-gray-900 bg-opacity-50"
           >
             <div className="relative p-4 w-full max-w-2xl max-h-full">
