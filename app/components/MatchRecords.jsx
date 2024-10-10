@@ -1,12 +1,6 @@
 "use client";
-import Image from "next/image";
-import { FaRegEye } from "react-icons/fa";
 import { useState, useEffect, useRef } from "react";
 import { FaPlus } from "react-icons/fa6";
-import { RxCross1 } from "react-icons/rx";
-import { motion, AnimatePresence } from "framer-motion";
-import BadgeGroup from "./BadgeGroup";
-import BadgeMessage from "./BadgeMessage";
 import { FaArrowAltCircleDown } from "react-icons/fa";
 import { FaArrowAltCircleUp } from "react-icons/fa";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -16,6 +10,7 @@ import {
   getRecords2,
   insertRecord,
   updateRecord,
+  updateRecord2,
 } from "@/supabase/supabaseClient";
 import Link from "next/link";
 
@@ -26,10 +21,7 @@ export default function MatchRecords({ userName }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [matchRecords, setMatchRecords] = useState([]);
   const [scoreRecords, setScoreRecords] = useState({});
-  const [originalScore, setOriginalScore] = useState(0);
-  const [updatedScore, setUpdatedScore] = useState(0);
   const [isChanged, setIsChanged] = useState(false);
-  const [editData, setEditData] = useState([]);
   const [editRecordId, setEditRecordId] = useState(null); // State to store the ID of the record being edited
   // Create record states
   const [companyURL, setCompanyURL] = useState("");
@@ -37,22 +29,21 @@ export default function MatchRecords({ userName }) {
   const [applied, setApplied] = useState(false);
   const [mailed, setMailed] = useState(false);
   const [dmed, setDmed] = useState(false);
-  const [DMsent, setDMsent] = useState(2); // State for DM counter
-
-  // score changes after editing
+  const [DMsent, setDMsent] = useState(0); // State for DM counter
+  const [random, setRandom] = useState();
+  const [initialApplied, setInitialApplied] = useState(false);
+  const [initialMailCount, setInitialMailCount] = useState(2);
+  const [initialDMsent, setInitialDMsent] = useState(2);
+  const [applyScore, setApplyScore] = useState(0);
   const [latestScore, setLatestScore] = useState(0);
   const [currentScore, setCurrentScore] = useState(0);
-
   const [latestScoreChange, setLatestScoreChange] = useState(0);
-
-  // mail scoring
-  const [mailCount, setMailCount] = useState(2); // State to track the number of mails
+  const [mailCount, setMailCount] = useState(0); // State to track the number of mails
 
   // Handle increment
   const incrementMailCount = () => {
     setMailCount((prevCount) => prevCount + 1);
   };
-
   // Handle decrement
   const decrementMailCount = () => {
     if (mailCount > 1) {
@@ -69,45 +60,30 @@ export default function MatchRecords({ userName }) {
       setIsLoading(true); // Set loading to true before fetching
       const fetchedMatches = await getRecords();
       const fetchedScoreRecords = await getRecords2(userName[2]);
-      const CurrentScoreRecord =
-        await fetchedScoreRecords[fetchedScoreRecords.length - 1];
-      setScoreRecords(CurrentScoreRecord);
       setMatchRecords(fetchedMatches);
       setIsLoading(false); // Set loading to false after fetching
-      setLatestScore(CurrentScoreRecord.score);
-      setLatestScoreChange(CurrentScoreRecord.score);
-      console.log(latestScore);
-      console.log(latestScoreChange);
+      setLatestScore(fetchedMatches[fetchedMatches.length - 1].score);
+      setLatestScoreChange(fetchedMatches[fetchedMatches.length - 1].score);
+      setRandom(fetchedMatches[fetchedMatches.length - 1].score);
     };
 
     fetchData();
   }, [userName]);
 
-  // Runs when edit button is clicked
-  const handleEditButtonClick = (recordId) => {
-    setEditRecordId(recordId); // Store the ID of the record being edited
-    // Set the current values of the record to the state variables to populate the form
-    const recordToEdit = matchRecords.find((record) => record.id === recordId);
-    setCompanyURL(recordToEdit.companyLink);
-    setEmailAddress(recordToEdit.emailAddress);
-    setApplied(recordToEdit.applied);
-    setMailed(recordToEdit.mailed);
-    setDmed(recordToEdit.DMed);
-    setMailCount(recordToEdit.mailScore);
-    setDMsent(recordToEdit.dmScore);
-    setIsEditModalOpen(true); // Open the edit modal
-  };
-
-  const handleCreateMatchClick = () => {
+  const handleCreateMatchClick = async () => {
     if (!userName) {
-      setUserToastDisplay(true); // Show user toast if userName is not valid
+      setUserToastDisplay(true);
+      // const fetchedScoreRecords = await getRecords2(userName[2]);
+      const fetchedMatches = await getRecords();
+      setRandom(fetchedMatches[fetchedMatches.length - 1].score);
+
+      // Show user toast if userName is not valid
     } else {
       setUserToastDisplay(false); // Hide user toast if userName is valid
       setCreateMatchModal(true); // Open create match modal
     }
   };
 
-  // Submit new record and update latest score
   const handleSubmit = async (event) => {
     event.preventDefault();
     setUserToastDisplay(false);
@@ -115,6 +91,10 @@ export default function MatchRecords({ userName }) {
 
     try {
       setIsLoading(true);
+
+      // Calculate the new score based on the `applyScore`, `DMsent`, and `mailCount` states
+      const currentScore =
+        applyScore + (dmed ? DMsent : 0) + (mailed ? mailCount : 0);
 
       // Calculate the new total score by adding the current score to the latest score from the records
       const newTotalScore =
@@ -131,7 +111,8 @@ export default function MatchRecords({ userName }) {
         userName[0],
         newTotalScore, // Pass the calculated total score here
         mailCount, // Pass the mail counter value from state
-        DMsent // Pass the DM counter value from state
+        DMsent, // Pass the DM counter value from state,
+        applyScore
       );
 
       if (!error) {
@@ -150,6 +131,9 @@ export default function MatchRecords({ userName }) {
         // Reset mail and DM counters
         setMailCount(0);
         setDMsent(0);
+
+        // Reset apply score
+        setApplyScore(0);
 
         // Fetch the latest score record for the user and update the state
         const fetchedScoreRecords = await getRecords2(userName[2]);
@@ -171,12 +155,20 @@ export default function MatchRecords({ userName }) {
   const printLatestScore = () => {
     console.log(latestScore); // current latest score
     console.log(latestScoreChange); // the latest score record
+    console.log(random);
+    console.log(matchRecords[matchRecords.length - 1].id);
+    console.log(matchRecords[matchRecords.length - 1].score);
   };
 
   // Handle checkbox change
   const handleCheckboxChange = (checked, setFunction) => {
     // Update the checkbox state
     setFunction(checked);
+
+    // Adjust the applyScore when the "Applied" checkbox changes
+    if (setFunction === setApplied) {
+      setApplyScore(checked ? 3 : 0);
+    }
 
     // Calculate the current score directly using the latest values of all checkboxes
     const newApplied = checked
@@ -191,7 +183,7 @@ export default function MatchRecords({ userName }) {
 
     // Calculate the new score based on the checkbox states
     const currentScore =
-      (newApplied ? 1 : 0) + (newMailed ? 1 : 0) + (newDmed ? 1 : 0);
+      (newApplied ? applyScore : 0) + (newMailed ? 1 : 0) + (newDmed ? 1 : 0);
 
     setCurrentScore(currentScore);
     setIsChanged(true); // Enable the submit button if any changes are made
@@ -208,8 +200,8 @@ export default function MatchRecords({ userName }) {
     setIsEditModalOpen(false);
     setIsChanged(false);
     setLatestScoreChange(latestScore);
-    setDMsent(2);
-    setMailCount(2);
+    setDMsent(0);
+    setMailCount(0);
 
     // setLatestScoreChange(0);
   };
@@ -221,22 +213,42 @@ export default function MatchRecords({ userName }) {
     setMailed(false);
     setDmed(false);
     setCurrentScore(0);
-    setMailCount(2);
+    setMailCount(0);
+    setDMsent(0);
     setCreateMatchModal(false); // Assuming this state controls the visibility of the CreateMatchModal
     setIsChanged(false);
+    setInitialApplied(0);
+    setInitialMailCount(0);
+    setInitialDMsent(0);
+
     setLatestScoreChange(latestScore);
   };
 
-  const updateMatchRecords = (editRecordId, updatedData) => {
-    return new Promise((resolve) => {
-      setMatchRecords((prevRecords) => {
-        const updatedRecords = prevRecords.map((record) =>
-          record.id === editRecordId ? { ...record, ...updatedData } : record
-        );
-        resolve(updatedRecords); // Resolve the promise once the state update is complete
-        return updatedRecords; // Return the updated records to set the state
-      });
-    });
+  const handleEditButtonClick = (recordId) => {
+    // Prevent the last record from being edited
+    const lastRecordId = matchRecords[matchRecords.length - 1].id;
+    if (recordId === lastRecordId) {
+      alert("Warning: Editing the last record is not allowed.");
+      return;
+    }
+
+    setEditRecordId(recordId); // Store the ID of the record being edited
+
+    // Set the current values of the record to the state variables to populate the form
+    const recordToEdit = matchRecords.find((record) => record.id === recordId);
+    setCompanyURL(recordToEdit.companyLink);
+    setEmailAddress(recordToEdit.emailAddress);
+    setApplied(recordToEdit.applied);
+    setMailed(recordToEdit.mailed);
+    setDmed(recordToEdit.DMed);
+    setMailCount(recordToEdit.mailScore);
+    setDMsent(recordToEdit.dmScore);
+    setIsEditModalOpen(true); // Open the edit modal
+
+    // Set initial values for score calculation
+    setInitialApplied(recordToEdit.applied);
+    setInitialMailCount(recordToEdit.mailScore);
+    setInitialDMsent(recordToEdit.dmScore);
   };
 
   const handleSubmit2 = async (e) => {
@@ -244,33 +256,95 @@ export default function MatchRecords({ userName }) {
     setIsLoading(true);
 
     try {
-      // Update the record in the database using the stored ID and include mailCount and DMsent
-      const { error } = await updateRecord(
+      // Calculate the score change based on initial vs. current state
+      let newScoreChange = 0;
+
+      // Calculate change for 'applied' checkbox
+      if (initialApplied !== applied) {
+        if (initialApplied === true && applied === false) {
+          newScoreChange -= 3; // Subtract 3 if initially applied and unchecked now
+        } else if (initialApplied === false && applied === true) {
+          newScoreChange += 3; // Add 3 if initially not applied and checked now
+        }
+      }
+
+      // Calculate the score change for mailCount and DMsent
+      newScoreChange += mailCount - initialMailCount;
+      newScoreChange += DMsent - initialDMsent;
+
+      // Update the main record (all fields except score)
+      const { error: updateError } = await updateRecord(
         companyURL,
         emailAddress,
         applied,
         mailed,
         dmed,
-        editRecordId, // Pass the ID of the record being edited
-        mailCount, // Pass the mail counter value from state
-        DMsent, // Pass the DM counter value from state
-        latestScoreChange
+        editRecordId, // ID of the record being edited
+        mailCount, // Updated mail counter value
+        DMsent // Updated DM counter value
       );
 
-      if (!error) {
-        // Directly update the matchRecords state without re-fetching and await the update
+      if (!updateError) {
+        // If update is successful, update the matchRecords state
         const updatedData = {
+          id: editRecordId, // Include the ID to identify which record to update
           companyLink: companyURL,
           emailAddress: emailAddress,
           applied: applied,
           mailed: mailed,
-          DMed: dmed, // Update DMed status immediately
-          mailScore: mailCount, // Include mail score in the updated data
-          dmScore: DMsent, // Include DM score in the updated data
+          DMed: dmed,
+          mailScore: mailCount,
+          dmScore: DMsent,
         };
-        await updateMatchRecords(editRecordId, updatedData); // Await the state update
 
-        // Reset the form fields and state variables after the state has been updated
+        // Update the specific record in the matchRecords array
+        const updatedRecords = matchRecords.map((record) =>
+          record.id === editRecordId ? updatedData : record
+        );
+
+        setMatchRecords(updatedRecords); // Set the updated records state
+
+        // After updating main record, update the score in the last record
+        const lastRecordId = updatedRecords[updatedRecords.length - 1].id; // Find the last record ID
+
+        // Calculate the new total score using the most recent `matchRecords`
+        const newTotalScore =
+          updatedRecords[updatedRecords.length - 1].score + newScoreChange;
+
+        // If the new score would be corrupt, abort the operation
+        if (isNaN(newTotalScore) || newTotalScore < 0) {
+          alert(
+            "Operation aborted: The calculated score would become invalid."
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        // Update the last record in the DB with the new score
+        const { error: scoreUpdateError } = await updateRecord2(
+          lastRecordId,
+          newTotalScore
+        );
+
+        if (!scoreUpdateError) {
+          console.log("Record and score updated:", newTotalScore);
+
+          // Update the last record's score in the state as well
+          const finalUpdatedRecords = updatedRecords.map((record) =>
+            record.id === lastRecordId
+              ? { ...record, score: newTotalScore }
+              : record
+          );
+
+          setMatchRecords(finalUpdatedRecords); // Set the final updated state
+        } else {
+          console.log(
+            "Error updating the score in the last record:",
+            scoreUpdateError
+          );
+        }
+
+        // Reset form fields and state variables after the update
         setCompanyURL("");
         setEmailAddress("");
         setApplied(false);
@@ -286,7 +360,7 @@ export default function MatchRecords({ userName }) {
         setIsEditModalOpen(false); // Close the edit modal
         setIsChanged(false); // Reset the change detection
       } else {
-        console.log("Error updating record:", error);
+        console.log("Error updating record:", updateError);
       }
     } catch (error) {
       console.error("Error during update submission:", error);
@@ -294,42 +368,6 @@ export default function MatchRecords({ userName }) {
       setIsLoading(false); // Stop the loading spinner once everything is done
     }
   };
-
-  //   e.preventDefault();
-
-  //   // Basic validation (You can customize this based on your requirements)
-  //   if (!companyURL || !emailAddress) {
-  //     alert("Please fill in all required fields.");
-  //     return;
-  //   }
-
-  //   // Logic to update your records
-  //   const updatedRecord = {
-  //     companyURL,
-  //     emailAddress,
-  //     applied,
-  //     mailed,
-  //     dmed,
-  //     mailCount,
-  //     DMsent,
-  //   };
-
-  //   // Here you would typically make an API call to save the updated record.
-  //   // For example:
-  //   // updateRecordInDatabase(updatedRecord);
-
-  //   console.log("Record updated:", updatedRecord);
-
-  //   // Reset states and close the modal after submission
-  //   setCompanyURL("");
-  //   setEmailAddress("");
-  //   setApplied(false);
-  //   setMailed(false);
-  //   setDmed(false);
-  //   setMailCount(2);
-  //   setDMsent(2);
-  //   setCreateMatchModal(false);
-  // };
 
   // Fetches exact record for edit modal and initializes the states
 
@@ -597,130 +635,6 @@ export default function MatchRecords({ userName }) {
             </div>
           </div>
         )}
-
-        {/* {isEditModalOpen && (
-          <div
-            id="edit-modal"
-            tabIndex="-1"
-            aria-hidden="false"
-            className="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-gray-900 bg-opacity-50"
-          >
-            <div className="relative p-4 w-full max-w-2xl max-h-full">
-              <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
-                <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Edit Job Application
-                  </h3>
-                  <button
-                    onClick={handleCancelClick} // Update to call handleCancelClick
-                    type="button"
-                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                  >
-                    <svg
-                      className="w-3 h-3"
-                      aria-hidden="true"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 14 14"
-                    >
-                      <path
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
-                      />
-                    </svg>
-                    <span className="sr-only">Close modal</span>
-                  </button>
-                </div>
-                <div className="p-4 md:p-5 space-y-4">
-                  <form className="space-y-4" onSubmit={handleSubmit2}>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">
-                        Company/Job URL
-                      </label>
-                      <input
-                        type="text"
-                        value={companyURL}
-                        onChange={(e) => setCompanyURL(e.target.value)}
-                        className="block w-full mt-2 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 dark:text-white">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={emailAddress}
-                        onChange={(e) => setEmailAddress(e.target.value)}
-                        className="block w-full mt-2 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900"
-                        required
-                      />
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={applied}
-                        onChange={(e) =>
-                          handleCheckboxChange(e.target.checked, setApplied)
-                        }
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                        Applied
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={mailed}
-                        onChange={(e) =>
-                          handleCheckboxChange(e.target.checked, setMailed)
-                        }
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                        Mailed
-                      </label>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={dmed}
-                        onChange={(e) =>
-                          handleCheckboxChange(e.target.checked, setDmed)
-                        }
-                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                      />
-                      <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                        DMed
-                      </label>
-                    </div>
-
-                    <div className="flex justify-between mt-5">
-                      <button
-                        type="submit"
-                        className="w-1/2 mr-2 p-3 text-center text-white bg-blue-600 rounded-lg"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelClick} // Cancel button triggers handleCancelClick
-                        className="w-1/2 ml-2 p-3 text-center text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
-        )} */}
         {isEditModalOpen && (
           <div
             id="edit-modal"

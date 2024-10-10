@@ -31,7 +31,8 @@ export const insertRecord = async (
   name,
   score,
   mailScore, // New parameter for mail count
-  dmScore // New parameter for DM count
+  dmScore, // New parameter for DM count
+  appliedScore
 ) => {
   try {
     const { data, error } = await supabase.from("records").insert({
@@ -45,6 +46,7 @@ export const insertRecord = async (
       score, // The overall score (if used)
       mailScore, // New: Maps to the "mailScore" column
       dmScore, // New: Maps to the "dmScore" column
+      appliedScore,
     });
 
     if (error) {
@@ -137,6 +139,28 @@ export const insertUserID = async (user_id) => {
     }
 
     console.log("userID inserted successfully:", data);
+    return { data, error: null };
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return { data: null, error };
+  }
+};
+
+export const updateRecord2 = async (id, score) => {
+  try {
+    const { data, error } = await supabase
+      .from("records")
+      .update({
+        score, // Update only the "score" column
+      })
+      .eq("id", id); // Use the provided ID to select the correct record
+
+    if (error) {
+      console.error("Error updating score:", error);
+      return { data: null, error };
+    }
+
+    console.log("Score updated successfully:", data);
     return { data, error: null };
   } catch (error) {
     console.error("Unexpected error:", error);
