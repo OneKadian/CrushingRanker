@@ -47,7 +47,6 @@ export default function MatchRecords({ userName }) {
   const incrementMailCount = () => {
     setMailCount((prevCount) => prevCount + 1);
   };
-  // Handle decrement
   const decrementMailCount = () => {
     if (mailCount > 1) {
       setMailCount((prevCount) => prevCount - 1);
@@ -57,34 +56,33 @@ export default function MatchRecords({ userName }) {
   const incrementDMCount = () => setDMsent(DMsent + 1);
   const decrementDMCount = () => setDMsent(DMsent > 0 ? DMsent - 1 : 0);
 
-  // Fetches all records and latest score
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true); // Set loading to true before fetching
-      setImage(userName[3]);
-      const fetchedMatches = await getRecords(userName[2]);
-      const fetchedScoreRecords = await getRecords2(userName[2]);
-      setMatchRecords(fetchedMatches);
-      setIsLoading(false); // Set loading to false after fetching
-      setLatestScore(fetchedMatches[fetchedMatches.length - 1].score);
-      setLatestScoreChange(fetchedMatches[fetchedMatches.length - 1].score);
-      setRandom(fetchedMatches[fetchedMatches.length - 1].score);
-    };
+  const fetchData = async () => {
+    setIsLoading(true); // Set loading to true before fetching
+    setImage(userName[3]);
+    const fetchedMatches = await getRecords(userName[2]);
+    const fetchedScoreRecords = await getRecords2(userName[2]);
+    setMatchRecords(fetchedMatches);
+    setIsLoading(false); // Set loading to false after fetching
+    setLatestScore(fetchedMatches[fetchedMatches.length - 1].score);
+    setLatestScoreChange(fetchedMatches[fetchedMatches.length - 1].score);
+    setRandom(fetchedMatches[fetchedMatches.length - 1].score);
+  };
 
-    fetchData();
+  // Use useEffect to fetch data initially on component mount and after userName changes
+  useEffect(() => {
+    if (userName && userName[2]) {
+      fetchData();
+    }
   }, [userName]);
 
   const handleCreateMatchClick = async () => {
     if (!userName) {
       setUserToastDisplay(true);
-      // const fetchedScoreRecords = await getRecords2(userName[2]);
       const fetchedMatches = await getRecords();
       setRandom(fetchedMatches[fetchedMatches.length - 1].score);
-
-      // Show user toast if userName is not valid
     } else {
-      setUserToastDisplay(false); // Hide user toast if userName is valid
-      setCreateMatchModal(true); // Open create match modal
+      setUserToastDisplay(false);
+      setCreateMatchModal(true);
     }
   };
 
@@ -96,18 +94,14 @@ export default function MatchRecords({ userName }) {
     try {
       setIsLoading(true);
 
-      // Fetch all existing user IDs from the USERIDS table
       const userIDs = await getUserIDS();
-
-      // Check if the current user_id exists in the fetched list
       const userExists = userIDs.some((user) => user.user_id === userName[2]);
 
-      // If the user_id does not exist, insert the new user into the USERIDS table
       if (!userExists) {
         const { error: insertError } = await insertUserID(
-          userName[2], // user_id
-          `${userName[0]} ${userName[1]}`, // Full name
-          userName[3] // imageURL
+          userName[2],
+          `${userName[0]} ${userName[1]}`,
+          userName[3]
         );
 
         if (insertError) {
@@ -117,56 +111,39 @@ export default function MatchRecords({ userName }) {
         }
       }
 
-      // Calculate the new score based on the `applyScore`, `DMsent`, and `mailCount` states
       const currentScore =
         applyScore + (dmed ? DMsent : 0) + (mailed ? mailCount : 0);
-
-      // Calculate the new total score by adding the current score to the latest score from the records
       const newTotalScore =
         currentScore + (matchRecords[matchRecords.length - 1]?.score || 0);
 
-      // Insert the new record with the calculated total score, mailCount, and DMsent
       const { error } = await insertRecord(
         companyURL,
         emailAddress,
         applied,
         mailed,
         dmed,
-        userName[2], // user_id
-        userName[0], // User's first name
-        newTotalScore, // Pass the calculated total score here
-        mailCount, // Pass the mail counter value from state
-        DMsent, // Pass the DM counter value from state
+        userName[2],
+        userName[0],
+        newTotalScore,
+        mailCount,
+        DMsent,
         applyScore,
         userName[3]
       );
 
       if (!error) {
-        // Fetch the updated records after inserting a new one
-        const fetchedRecords = await getRecords();
-        setMatchRecords(fetchedRecords);
+        // After successful submission, fetch new records
+        await fetchData();
 
-        // Reset the form fields after successful insertion
         setCompanyURL("");
         setEmailAddress("");
         setApplied(false);
         setMailed(false);
         setDmed(false);
-        setCurrentScore(0); // Reset the current score to zero
-
-        // Reset mail and DM counters
+        setCurrentScore(0);
         setMailCount(0);
         setDMsent(0);
-
-        // Reset apply score
         setApplyScore(0);
-
-        // Fetch the latest score record for the user and update the state
-        const fetchedScoreRecords = await getRecords2(userName[2]);
-        const currentScoreRecord =
-          fetchedScoreRecords[fetchedScoreRecords.length - 1];
-        setScoreRecords(currentScoreRecord);
-        setLatestScore(currentScoreRecord.score);
       } else {
         console.log("Error inserting record:", error);
       }
@@ -177,23 +154,18 @@ export default function MatchRecords({ userName }) {
     }
   };
 
-  // Prints latest score and score record
   const printLatestScore = () => {
     console.log(userName);
     console.log(matchRecords[matchRecords.length - 1].score);
   };
 
-  // Handle checkbox change
   const handleCheckboxChange = (checked, setFunction) => {
-    // Update the checkbox state
     setFunction(checked);
 
-    // Adjust the applyScore when the "Applied" checkbox changes
     if (setFunction === setApplied) {
       setApplyScore(checked ? 3 : 0);
     }
 
-    // Calculate the current score directly using the latest values of all checkboxes
     const newApplied = checked
       ? applied || setFunction === setApplied
       : applied && setFunction !== setApplied;
@@ -204,15 +176,13 @@ export default function MatchRecords({ userName }) {
       ? dmed || setFunction === setDmed
       : dmed && setFunction !== setDmed;
 
-    // Calculate the new score based on the checkbox states
     const currentScore =
       (newApplied ? applyScore : 0) + (newMailed ? 1 : 0) + (newDmed ? 1 : 0);
 
     setCurrentScore(currentScore);
-    setIsChanged(true); // Enable the submit button if any changes are made
+    setIsChanged(true);
   };
 
-  // Handle cancel button click - resets all states except latestScore
   const handleCancelClick = () => {
     setCompanyURL("");
     setEmailAddress("");
@@ -225,8 +195,6 @@ export default function MatchRecords({ userName }) {
     setLatestScoreChange(latestScore);
     setDMsent(0);
     setMailCount(0);
-
-    // setLatestScoreChange(0);
   };
 
   const handleCancelClick2 = () => {
@@ -238,26 +206,23 @@ export default function MatchRecords({ userName }) {
     setCurrentScore(0);
     setMailCount(0);
     setDMsent(0);
-    setCreateMatchModal(false); // Assuming this state controls the visibility of the CreateMatchModal
+    setCreateMatchModal(false);
     setIsChanged(false);
     setInitialApplied(0);
     setInitialMailCount(0);
     setInitialDMsent(0);
-
     setLatestScoreChange(latestScore);
   };
 
   const handleEditButtonClick = (recordId) => {
-    // Prevent the last record from being edited
     const lastRecordId = matchRecords[matchRecords.length - 1].id;
     if (recordId === lastRecordId) {
       alert("Warning: Editing the last record is not allowed.");
       return;
     }
 
-    setEditRecordId(recordId); // Store the ID of the record being edited
+    setEditRecordId(recordId);
 
-    // Set the current values of the record to the state variables to populate the form
     const recordToEdit = matchRecords.find((record) => record.id === recordId);
     setCompanyURL(recordToEdit.companyLink);
     setEmailAddress(recordToEdit.emailAddress);
@@ -266,9 +231,8 @@ export default function MatchRecords({ userName }) {
     setDmed(recordToEdit.DMed);
     setMailCount(recordToEdit.mailScore);
     setDMsent(recordToEdit.dmScore);
-    setIsEditModalOpen(true); // Open the edit modal
+    setIsEditModalOpen(true);
 
-    // Set initial values for score calculation
     setInitialApplied(recordToEdit.applied);
     setInitialMailCount(recordToEdit.mailScore);
     setInitialDMsent(recordToEdit.dmScore);
@@ -279,38 +243,33 @@ export default function MatchRecords({ userName }) {
     setIsLoading(true);
 
     try {
-      // Calculate the score change based on initial vs. current state
       let newScoreChange = 0;
 
-      // Calculate change for 'applied' checkbox
       if (initialApplied !== applied) {
         if (initialApplied === true && applied === false) {
-          newScoreChange -= 3; // Subtract 3 if initially applied and unchecked now
+          newScoreChange -= 3;
         } else if (initialApplied === false && applied === true) {
-          newScoreChange += 3; // Add 3 if initially not applied and checked now
+          newScoreChange += 3;
         }
       }
 
-      // Calculate the score change for mailCount and DMsent
       newScoreChange += mailCount - initialMailCount;
       newScoreChange += DMsent - initialDMsent;
 
-      // Update the main record (all fields except score)
       const { error: updateError } = await updateRecord(
         companyURL,
         emailAddress,
         applied,
         mailed,
         dmed,
-        editRecordId, // ID of the record being edited
-        mailCount, // Updated mail counter value
-        DMsent // Updated DM counter value
+        editRecordId,
+        mailCount,
+        DMsent
       );
 
       if (!updateError) {
-        // If update is successful, update the matchRecords state
         const updatedData = {
-          id: editRecordId, // Include the ID to identify which record to update
+          id: editRecordId,
           companyLink: companyURL,
           emailAddress: emailAddress,
           applied: applied,
@@ -320,21 +279,16 @@ export default function MatchRecords({ userName }) {
           dmScore: DMsent,
         };
 
-        // Update the specific record in the matchRecords array
         const updatedRecords = matchRecords.map((record) =>
           record.id === editRecordId ? updatedData : record
         );
 
-        setMatchRecords(updatedRecords); // Set the updated records state
+        setMatchRecords(updatedRecords);
 
-        // After updating main record, update the score in the last record
-        const lastRecordId = updatedRecords[updatedRecords.length - 1].id; // Find the last record ID
-
-        // Calculate the new total score using the most recent `matchRecords`
+        const lastRecordId = updatedRecords[updatedRecords.length - 1].id;
         const newTotalScore =
           updatedRecords[updatedRecords.length - 1].score + newScoreChange;
 
-        // If the new score would be corrupt, abort the operation
         if (isNaN(newTotalScore) || newTotalScore < 0) {
           alert(
             "Operation aborted: The calculated score would become invalid."
@@ -343,23 +297,19 @@ export default function MatchRecords({ userName }) {
           return;
         }
 
-        // Update the last record in the DB with the new score
         const { error: scoreUpdateError } = await updateRecord2(
           lastRecordId,
           newTotalScore
         );
 
         if (!scoreUpdateError) {
-          console.log("Record and score updated:", newTotalScore);
-
-          // Update the last record's score in the state as well
           const finalUpdatedRecords = updatedRecords.map((record) =>
             record.id === lastRecordId
               ? { ...record, score: newTotalScore }
               : record
           );
 
-          setMatchRecords(finalUpdatedRecords); // Set the final updated state
+          setMatchRecords(finalUpdatedRecords);
         } else {
           console.log(
             "Error updating the score in the last record:",
@@ -367,28 +317,24 @@ export default function MatchRecords({ userName }) {
           );
         }
 
-        // Reset form fields and state variables after the update
         setCompanyURL("");
         setEmailAddress("");
         setApplied(false);
         setMailed(false);
         setDmed(false);
         setCurrentScore(0);
-
-        // Reset mail and DM counters
         setMailCount(0);
         setDMsent(0);
-
-        setEditRecordId(null); // Clear the ID of the record being edited
-        setIsEditModalOpen(false); // Close the edit modal
-        setIsChanged(false); // Reset the change detection
+        setEditRecordId(null);
+        setIsEditModalOpen(false);
+        setIsChanged(false);
       } else {
         console.log("Error updating record:", updateError);
       }
     } catch (error) {
       console.error("Error during update submission:", error);
     } finally {
-      setIsLoading(false); // Stop the loading spinner once everything is done
+      setIsLoading(false);
     }
   };
 
