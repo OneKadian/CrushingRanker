@@ -5,7 +5,8 @@ import Nav from "./Nav";
 import ButtonGroup from "./ButtonGroup";
 // import Logo from "../public/nutritrack.svg";
 // import Logo from "../public/GoodMinton.jpg";
-import Logo from "../public/shuttle.png";
+import Logo from "../public/crushing.png";
+// import Logo from "../public/shuttle.png";
 import { FaArrowRight } from "react-icons/fa";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs";
@@ -22,14 +23,14 @@ const Header = async () => {
         <div className="header-logo--container">
           <h1 className="logo mb-0">
             <Link href="/">
-              {/* <Image
+              <Image
                 src={Logo}
                 alt="logo"
-                className="h-6 w-auto"
-                height="24"
-                width="100"
-              /> */}
-              <GiShuttlecock className="text-black text-4xl" />
+                className="h-16 w-auto"
+                height="150"
+                width="150"
+              />
+              {/* <GiShuttlecock className="text-black text-4xl" /> */}
             </Link>
           </h1>
           {/* <Link href="/">
