@@ -217,7 +217,9 @@ export default function MatchRecords({ userName }) {
   const handleEditButtonClick = (recordId) => {
     const lastRecordId = matchRecords[matchRecords.length - 1].id;
     if (recordId === lastRecordId) {
-      alert("Warning: Editing the last record is not allowed.");
+      alert(
+        "Warning: Editing the last record is not allowed, add another one below to edit this one, Thanks! "
+      );
       return;
     }
 
@@ -366,6 +368,9 @@ export default function MatchRecords({ userName }) {
           <table className="w-full px-8 text-sm text-left rtl:text-right text-gray-500">
             <thead className="text-lg text-gray-700 bg-gray-300">
               <tr>
+                <th scope="col" className="px-4 py-8 cursor-pointer">
+                  S.no.
+                </th>
                 <th scope="col" className="px-8 py-8">
                   Company/Job URL
                 </th>
@@ -394,7 +399,10 @@ export default function MatchRecords({ userName }) {
               {/* Dynamic data */}
               {matchRecords.map((record, index) => (
                 <tr key={index} className="bg-white border-b text-lg">
-                  <td className="px-8 py-8 text-lg">
+                  <td className="px-4 py-8 text-lg cursor-pointer">
+                    {matchRecords.indexOf(record) + 1}
+                  </td>
+                  <td className="px-4 py-8 text-lg">
                     <a
                       href={record.companyLink}
                       target="_blank"
@@ -441,9 +449,15 @@ export default function MatchRecords({ userName }) {
             <div className="relative p-4 w-full max-w-2xl max-h-full">
               <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
                 <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Job Application Form
+                  {/* <div className="flex flex-col "> */}
+                  <h3 className="text-xl font-semibold text-gray-900 ">
+                    You Record it, you got it
                   </h3>
+                  {/* <h2 className="text-sm font-medium text-gray-900">
+                      Don't lie here, bastard - David
+                    </h2> */}
+                  {/* </div> */}
+
                   <button
                     onClick={handleCancelClick2}
                     type="button"
@@ -492,7 +506,7 @@ export default function MatchRecords({ userName }) {
                         value={emailAddress}
                         onChange={(e) => setEmailAddress(e.target.value)}
                         className="block w-full mt-2 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900"
-                        required
+                        // required
                       />
                     </div>
                     {/* Applied Checkbox */}
@@ -506,7 +520,7 @@ export default function MatchRecords({ userName }) {
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                       />
                       <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
-                        Applied
+                        Applied ( 3 points for applying to a job, well done)
                       </label>
                     </div>
 
@@ -521,7 +535,7 @@ export default function MatchRecords({ userName }) {
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                       />
                       <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
-                        Mailed
+                        Mailed ( 1 point each for every Mail sent )
                       </label>
                     </div>
                     {/* Conditionally Render Mail Counter */}
@@ -557,7 +571,7 @@ export default function MatchRecords({ userName }) {
                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
                       />
                       <label className="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer">
-                        DMed
+                        DMed ( 1 point each for every DM sent )
                       </label>
                     </div>
                     {/* Conditionally Render DM Counter */}
